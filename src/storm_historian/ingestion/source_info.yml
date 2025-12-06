@@ -1,0 +1,16 @@
+sources:
+  - name: storm_event_details
+    url: https://www.ncei.noaa.gov/pub/data/swdi/stormevents/csvfiles/
+    prefix: StormEvents_details
+    format: csv
+    description: storm event details
+  - name: storm_event_fatalities
+    url: https://www.ncei.noaa.gov/pub/data/swdi/stormevents/csvfiles/
+    prefix: StormEvents_fatalities
+    format: csv
+    description: storm event fatalities
+  - name: storm_event_locations
+    url: https://www.ncei.noaa.gov/pub/data/swdi/stormevents/csvfiles/
+    prefix: StormEvents_locations
+    format: csv
+    description: storm event locations
