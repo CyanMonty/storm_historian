@@ -2,12 +2,16 @@
 name = "storm_historian"
 version = "0.1.0"
 package-mode = true
+packages = [{include = "storm_historian", from = "src"}]
 
 [tool.poetry.dependencies]
 python = "^3.14"
 polars = "^1.35.2"
 duckdb = "^1.4.2"
 pydantic = "^2.12.5"
+pyyaml = "^6.0.3"
+requests = "^2.32.5"
+bs4 = "^0.0.2"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.14.8"

@@ -1,9 +1,11 @@
-from pydantic import BaseModel
+from dataclasses import dataclass
 
 
-class SourceModel(BaseModel):
+@dataclass
+class SourceModel:
     name: str
     url: str
     prefix: str
-    extension: str
+    suffixes: list[str]
     description: str
+    type: str  # e.g., 'directory' or 'file'
