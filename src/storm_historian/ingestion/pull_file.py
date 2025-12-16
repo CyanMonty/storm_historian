@@ -1,87 +1,78 @@
-import requests
-import yaml
 from pathlib import Path
-from bs4 import BeautifulSoup
 import duckdb
+import requests
 
-from storm_historian.ingestion.source_model import SourceModel
-
-
-def load_source_config(config_path: Path) -> list[SourceModel]:
-    """
-    Load source configuration from a JSON file.
-    Args:
-        config_path (Path): The path to the JSON configuration file.
-    Returns:
-        list[SourceModel]: A list of source configuration dictionaries.
-    """
-    with open(config_path, "r") as file:
-        config = yaml.safe_load(file)
-    sources = [SourceModel(**source) for source in config["sources"]]
-    return sources
-
-def discover_files_at_source(
-        source: SourceModel, 
-        session: requests.Session,
-        state_db: duckdb.DuckDBPyConnection,
+def download_file(
+    session: requests.Session,
+    url: str,
+    destination_path: Path
 ) -> None:
     """
-    Discover available files at the given source. Logs the discovered fiels to a duckdb table
+    Download a file from a given URL and save it to the specified destination path.
+    Args:
+        session (requests.Session): The requests session to use for downloading.
+        url (str): The URL of the file to download.
+        destination_path (Path): The local path where the file will be saved.
     """
-    if source.type != "directory":
-        raise ValueError("Source type must be 'directory' to discover files.")
-    print(f"Discovering files at source: {source.name} ({source.url})")
-    response = session.get(source.url)
-    response.raise_for_status()
-    soup = BeautifulSoup(response.text, "html.parser")
-    for a in soup.find_all("a"):
-        href = a.get("href")
-        if href and href.startswith(source.prefix) and any(href.endswith(suffix) for suffix in source.suffixes):
-            file_url = source.url + href
+    tmp_path = destination_path.with_suffix(destination_path.suffix + ".partial")
+    try:
+        with session.get(url, stream=True) as resp:
+            resp.raise_for_status()
+            with open(tmp_path, "wb") as f:
+                for chunk in resp.iter_content(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
+        tmp_path.replace(destination_path)
+    except requests.exceptions.ConnectionError as e:
+        raise RuntimeError(f"Connection error downloading {url}") from e
+    except requests.exceptions.RequestException as e:
+        print(e)
+        raise RuntimeError(f"Request failed for {url}") from e
+    finally:
+        # Clean up partial file if something went wrong
+        if tmp_path.exists() and not destination_path.exists():
+            tmp_path.unlink(missing_ok=True)
 
-
-def pull_file(url: str, destination_path: str) -> None:
+def pull_undownloaded_files(
+    conn: duckdb.DuckDBPyConnection,
+    destination_path: str
+):
     """
     Pull a file from a given URL and save it to the specified destination path.
     Args:
-        url (str): The URL of the file to be downloaded.
+        conn (duckdb.DuckDBPyConnection): The DuckDB connection to the state database.
         destination_path (str): The local path where the file will be saved.
     """
-    response = requests.get(url)
-    response.raise_for_status()
-    with open(destination_path, "wb") as file:
-        file.write(response.content)
+    undiscovered_files = conn.execute(
+        """
+        SELECT file_name, url 
+        FROM file_tracker
+        WHERE downloaded = FALSE
+        """
+    ).fetchall()
+    print(f"Found {len(undiscovered_files)} undownloaded files")
 
-def setup_state_db(db_path: str) -> duckdb.DuckDBPyConnection:
-    """
-    Set up a DuckDB database at the specified path. Used for state management
-    Args:
-        db_path (str): The path to the DuckDB database file.
-    """
-    conn = duckdb.connect(db_path)
-    conn.execute("""
-    CREATE TABLE IF NOT EXISTS file_tracker (
-        file_name TEXT,
-        last_modified DATE,
-        source_name TEXT,
-        date_discovered TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        downloaded BOOLEAN DEFAULT FALSE,
-        date_downloaded TIMESTAMP NULL
-    )
-    """)
-    return conn
-
+    session = requests.Session()
+    for file_name, url in undiscovered_files:
+        print(f"Downloading file: {file_name} from {url}")
+        download_file(
+            session,
+            url,
+            Path(destination_path) / file_name
+        )
+        conn.execute(
+            f"""
+            UPDATE file_tracker
+            SET downloaded = TRUE,
+                date_downloaded = CURRENT_TIMESTAMP
+            WHERE file_name = '{file_name}'
+            """
+        )
 
 def main():
-    script_dir = Path(__file__).parent.resolve() / "source_info.yml"
     data_dir = Path(__file__).parent.resolve() / "../../../" / "data"
-    sources = load_source_config(script_dir)
-    state_conn = setup_state_db(db_path=data_dir / "state.db")
-    session = requests.Session()
-    for source in sources:
-        print(f"Processing source: {source.name}")
-        if source.type == "directory":
-            discover_files_at_source(source, session)
+    state_conn = duckdb.connect(data_dir / "duckdb" / "state.db")
+    pull_undownloaded_files(state_conn, data_dir / "raw")
 
 
 if __name__ == "__main__":
