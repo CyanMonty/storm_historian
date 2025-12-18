@@ -5,7 +5,7 @@ package-mode = true
 packages = [{include = "storm_historian", from = "src"}]
 
 [tool.poetry.dependencies]
-python = "^3.14"
+python = "^3.12"
 polars = "^1.35.2"
 duckdb = "^1.4.2"
 pydantic = "^2.12.5"
@@ -16,6 +16,7 @@ pyarrow = "^22.0.0"
 plotly = "^6.5.0"
 numpy = "^2.3.5"
 streamlit = "^1.52.1"
+dbt-duckdb = "^1.10.0"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.14.8"

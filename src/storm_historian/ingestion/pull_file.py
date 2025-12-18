@@ -5,7 +5,8 @@ import requests
 def download_file(
     session: requests.Session,
     url: str,
-    destination_path: Path
+    destination_path: Path,
+    file_name: str
 ) -> None:
     """
     Download a file from a given URL and save it to the specified destination path.
@@ -13,8 +14,11 @@ def download_file(
         session (requests.Session): The requests session to use for downloading.
         url (str): The URL of the file to download.
         destination_path (Path): The local path where the file will be saved.
+        file_name (str): The name of the file being downloaded.
     """
-    tmp_path = destination_path.with_suffix(destination_path.suffix + ".partial")
+    destination_path.mkdir(parents=True, exist_ok=True)
+    full_path = destination_path / file_name
+    tmp_path = destination_path.with_suffix(full_path.suffix +".partial")
     try:
         with session.get(url, stream=True) as resp:
             resp.raise_for_status()
@@ -22,7 +26,7 @@ def download_file(
                 for chunk in resp.iter_content(chunk_size=8192):
                     if chunk:
                         f.write(chunk)
-        tmp_path.replace(destination_path)
+        tmp_path.replace(full_path)
     except requests.exceptions.ConnectionError as e:
         raise RuntimeError(f"Connection error downloading {url}") from e
     except requests.exceptions.RequestException as e:
@@ -30,7 +34,7 @@ def download_file(
         raise RuntimeError(f"Request failed for {url}") from e
     finally:
         # Clean up partial file if something went wrong
-        if tmp_path.exists() and not destination_path.exists():
+        if tmp_path.exists() and not full_path.exists():
             tmp_path.unlink(missing_ok=True)
 
 def pull_undownloaded_files(
@@ -45,7 +49,7 @@ def pull_undownloaded_files(
     """
     undiscovered_files = conn.execute(
         """
-        SELECT file_name, url 
+        SELECT file_name, url, source_name
         FROM file_tracker
         WHERE downloaded = FALSE
         """
@@ -53,12 +57,14 @@ def pull_undownloaded_files(
     print(f"Found {len(undiscovered_files)} undownloaded files")
 
     session = requests.Session()
-    for file_name, url in undiscovered_files:
+    for file in undiscovered_files:
+        file_name, url, source_name = file
         print(f"Downloading file: {file_name} from {url}")
         download_file(
-            session,
-            url,
-            Path(destination_path) / file_name
+            session=session,
+            url=url,
+            destination_path=Path(destination_path) / source_name,
+            file_name=file_name
         )
         conn.execute(
             f"""
