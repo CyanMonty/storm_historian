@@ -17,6 +17,9 @@ plotly = "^6.5.0"
 numpy = "^2.3.5"
 streamlit = "^1.52.1"
 dbt-duckdb = "^1.10.0"
+dbt-core = "^1.10.16"
+dbt = "^1.0.0.40.12"
+sqlfluff = "^3.5.0"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.14.8"

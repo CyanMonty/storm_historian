@@ -1,0 +1,74 @@
+==================== 2025-12-18 22:04:50.238065 | 019b337e-8cac-7911-80f6-5df267fec5ab ====================
+Installing dbt project and profile setup
+22:04:50.276313 [info ]: Info Created .vscode/extensions.json with dbt extension recommendation
+22:04:50.277554 [info ]: Success Project created successfully!
+22:04:50.277790 [info ]: Info Project name: storm_history_visualizer
+22:04:50.277965 [info ]: Info Project directory: storm_history_visualizer
+22:04:50.278539 [info ]: Info Setting up your profile...
+22:04:50.288493 [info ]: Info Creating new profile...
+22:07:01.086026 [info ]: No dbt_cloud.yml found - proceeding without cloud pre-population
+22:07:21.720566 [info ]: Success Profile written to C:\Users\chris\.dbt\profiles.yml
+22:07:21.721174 [info ]: Validating profile inputs, adapters, and connection
+
+dbt-fusion 2.0.0-preview.72
+   Loading ~/.dbt/profiles.yml
+ Debugging profile: dev
+ Debugging dbt version: 2.0.0-preview.72
+ Debugging platform: windows x86_64 (windows)
+ Debugging adapter type: databricks (remote)
+ Debugging dependencies:
+  git: OK
+ Debugging connection:
+  "schema": "asdf",
+  "host": "sdf",
+  "http_path": "asdf"
+22:07:21.806480 [error]: dbt1011: Configuration Error: Invalid http_path: asdf
+New version available 2.0.0-preview.88 (run `dbt system update`)
+22:07:21.930054 [info ]: 
+==================== Execution Summary =====================
+Finished 'init' with 1 error for target 'dev' [2m 32s]
+==================== 2025-12-18 22:08:16.997187 | 019b3381-b463-7793-aad4-f766d7fb0717 ====================
+Installing dbt project and profile setup
+22:08:17.009670 [info ]: Info Created .vscode/extensions.json with dbt extension recommendation
+22:08:17.009964 [info ]: Success Project created successfully!
+22:08:17.010158 [info ]: Info Project name: storm_history_visualizer
+22:08:17.010328 [info ]: Info Project directory: storm_history_visualizer
+22:08:17.010504 [info ]: Info Setting up your profile...
+22:08:17.014038 [info ]: Profile 'storm_history_visualizer' already exists. You can choose how to proceed.
+22:08:20.131377 [info ]: Info Creating new profile...
+==================== 2025-12-18 22:14:20.056219 | 019b3387-3e96-7e91-bc6f-2cbedeea36a5 ====================
+Installing dbt project and profile setup
+22:14:20.070113 [info ]: Info Created .vscode/extensions.json with dbt extension recommendation
+22:14:20.070392 [info ]: Success Project created successfully!
+22:14:20.070590 [info ]: Info Project name: jaffle_shop
+22:14:20.070811 [info ]: Info Project directory: jaffle_shop
+22:14:20.070970 [info ]: Info Setting up your profile...
+22:14:20.072259 [info ]: Info Creating new profile...
+[0m16:18:38.125959 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'start', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x0000015867DAECC0>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x00000158680F7BF0>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x00000158680F70B0>]}
+
+
+============================== 16:18:38.219834 | 223db572-789f-4183-a6f6-bb9a4e411948 ==============================
+[0m16:18:38.219834 [info ] [MainThread]: Running with dbt=1.10.16
+[0m16:18:38.219834 [debug] [MainThread]: running dbt with arguments {'static_parser': 'True', 'no_print': 'None', 'version_check': 'True', 'target_path': 'None', 'warn_error_options': 'WarnErrorOptionsV2(error=[], warn=[], silence=[])', 'printer_width': '80', 'write_json': 'True', 'empty': 'None', 'log_cache_events': 'False', 'introspect': 'True', 'cache_selected_only': 'False', 'log_format': 'default', 'debug': 'False', 'fail_fast': 'False', 'profiles_dir': 'C:\\Users\\chris\\.dbt', 'send_anonymous_usage_stats': 'True', 'quiet': 'False', 'warn_error': 'None', 'partial_parse': 'True', 'invocation_command': 'dbt init =storm_history_vis', 'use_colors': 'True', 'indirect_selection': 'eager', 'use_experimental_parser': 'False', 'log_path': 'logs'}
+[0m16:18:50.219430 [debug] [MainThread]: Starter project path: C:\Users\chris\AppData\Local\pypoetry\Cache\virtualenvs\storm-historian-VyLVD6Cc-py3.12\Lib\site-packages\dbt\include\starter_project
+[0m16:18:50.238251 [info ] [MainThread]: 
+Your new dbt project "story_history_vis" was created!
+
+For more information on how to configure the profiles.yml file,
+please consult the dbt documentation here:
+
+  https://docs.getdbt.com/docs/configure-your-profile
+
+One more thing:
+
+Need help? Don't hesitate to reach out to us via GitHub issues or on Slack:
+
+  https://community.getdbt.com/
+
+Happy modeling!
+
+[0m16:18:50.238251 [info ] [MainThread]: Setting up your profile.
+[0m16:19:03.563027 [debug] [MainThread]: Command `dbt init` succeeded at 16:19:03.563027 after 25.56 seconds
+[0m16:19:03.563027 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'end', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x00000158686243E0>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x000001586636E4E0>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x00000158663A0F50>]}
+[0m16:19:03.563027 [debug] [MainThread]: Flushing usage events
+[0m16:19:03.962810 [debug] [MainThread]: An error was encountered while trying to flush usage events
