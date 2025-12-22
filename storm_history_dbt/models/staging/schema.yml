@@ -1,0 +1,21 @@
+version: 2
+
+models:
+  - name: stg_base_storm_event_details
+    description: "Base model that reads raw storm event details CSVs via read_csv_auto."
+    columns:
+      - name: etl_inserted_at
+        description: "Timestamp when the row was read."
+
+  - name: stg_storm_event_details
+    description: "Clean staging model for storm event details (typed, trimmed, normalized)."
+    columns:
+      - name: event_id
+        tests:
+          - not_null
+      - name: begin_date_time
+        tests:
+          - not_null
+      - name: event_type
+        tests:
+          - not_null

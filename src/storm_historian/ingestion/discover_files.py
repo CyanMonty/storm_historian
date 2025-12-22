@@ -126,7 +126,7 @@ def main():
     script_dir = Path(__file__).parent.resolve() / "source_info.yml"
     data_dir = Path(__file__).parent.resolve() / "../../../" / "data"
     sources = load_source_config(script_dir)
-    state_conn = setup_state_db(db_path=data_dir / "duckdb" / "state.db")
+    state_conn = setup_state_db(db_path=data_dir / "duckdb" / "state.duckdb")
     session = requests.Session()
     for source in sources:
         print(f"Processing source: {source.name}")

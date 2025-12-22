@@ -77,7 +77,7 @@ def pull_undownloaded_files(
 
 def main():
     data_dir = Path(__file__).parent.resolve() / "../../../" / "data"
-    state_conn = duckdb.connect(data_dir / "duckdb" / "state.db")
+    state_conn = duckdb.connect(data_dir / "duckdb" / "state.duckdb")
     pull_undownloaded_files(state_conn, data_dir / "raw")
 
 
