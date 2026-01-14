@@ -3,5 +3,5 @@ storm_historian:
   outputs:
     dev:
       type: duckdb
-      path: "{{ env_var('DUCKDB_PATH', 'data/duckdb/warehouse.duckdb') }}"
-      schema: marts
+      path: "{{ env_var('STORM_DUCKDB_PATH', 'data/duckdb/warehouse.duckdb') }}"
+      schema: main

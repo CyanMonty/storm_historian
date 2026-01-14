@@ -1,0 +1,98 @@
+version: 2
+
+exposures:
+  - name: raw_files_catalog
+    type: application
+    maturity: low
+    owner:
+      name: "Chris Montgomery"
+    description: |
+      Registry of raw file inputs for the Storm Historian project
+      These datasets are immutable inputs and are loaded into the bronze layer
+      via DuckDB file readers (read_csv, read_parquet, etc)
+
+    meta:
+      raw_files:
+
+        - dataset: storm_event_fatalities
+          description: "NOAA Storm Events fatality records (CSV.GZ extracts)."
+          source_system: "NOAA Storm Events Database"
+          path_env_var: STORM_EVENT_FATALITIES_CSV_PATH
+          default_path: data/raw/storm_event_fatalities/*.csv.gz
+          format: csv.gz
+
+          ingestion:
+            method: duckdb_read_csv
+            options:
+              header: true
+              union_by_name: true
+              ignore_errors: true
+              all_varchar: true
+
+          expectations:
+            required_columns:
+              - EVENT_ID
+              - FATALITY_ID
+            min_rows: 1
+          raw_model: storm_event_fatalities__raw
+          staging_model: stg_storm_event_fatalities
+          final_models:
+            - fct_fatalities
+
+          notes:
+            - "Files are treated as immutable once downloaded."
+            - "Schema is not enforced at ingestion; typing occurs in silver."
+
+        - dataset: storm_event_details
+          description: "NOAA Storm Events details (CSV.GZ extracts)."
+          source_system: "NOAA Storm Events Database"
+          path_env_var: STORM_EVENT_DETAILS_CSV_PATH
+          default_path: data/raw/storm_event_details/*.csv.gz
+          format: csv.gz
+
+          ingestion:
+            method: duckdb_read_csv
+            options:
+              header: true
+              union_by_name: true
+              ignore_errors: true
+              all_varchar: true
+
+          expectations:
+            required_columns:
+            min_rows: 1
+          raw_model: 
+          staging_model: 
+
+          notes:
+            - "Files are treated as immutable once downloaded."
+            - "Schema is not enforced at ingestion; typing occurs in silver."
+
+        - dataset: storm_event_locations
+          description: "NOAA Storm Events locations (CSV.GZ extracts)."
+          source_system: "NOAA Storm Events Database"
+          path_env_var: STORM_EVENT_LOCATIONS_CSV_PATH
+          default_path: data/raw/storm_event_locations/*.csv.gz
+          format: csv.gz
+
+          ingestion:
+            method: duckdb_read_csv
+            options:
+              header: true
+              union_by_name: true
+              ignore_errors: true
+              all_varchar: true
+
+          expectations:
+            required_columns:
+              - EVENT_ID
+              - FATALITY_ID
+            min_rows: 1
+          raw_model: storm_event_fatalities__raw
+          staging_model: stg_storm_event_fatalities
+          final_models:
+            - fct_fatalities
+
+          notes:
+            - "Files are treated as immutable once downloaded."
+            - "Schema is not enforced at ingestion; typing occurs in silver."

@@ -2,11 +2,11 @@
     "sqltools.useNodeRuntime": true,
     "sqltools.connections": [
         {
-            "name": "StormHistoryDB",
+            "name": "ExplorationStormDuckDB",
             "accessMode": "Read Only",
             "previewLimit": 50,
             "driver": "DuckDB",
-            "databaseFilePath": "C:\\Users\\chris\\Documents\\repos\\storm_historian\\data\\duckdb\\warehouse.duckdb"
+            "databaseFilePath": "C:\\Users\\chris\\Documents\\repos\\storm_historian\\data\\duckdb\\warehouse_explore.duckdb"
         }
     ]
 }

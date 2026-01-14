@@ -26,8 +26,16 @@ clean-targets:         # directories to be removed by `dbt clean`
 # directory as views. These settings can be overridden in the individual model
 # files using the `{{ config(...) }}` macro.
 models:
-  storm_history_dbt:  # This is the name of your project
+  storm_history_dbt:
     sources:
       schema: source
+    raw:
+      +schema: raw
+      +materialized: table
     staging:
-      schema: staging
+      +schema: staging
+      +materialized: view
+    marts:
+      +schema: marts
+      +materialized: table
+    
