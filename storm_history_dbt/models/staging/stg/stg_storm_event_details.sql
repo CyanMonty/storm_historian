@@ -1,7 +1,7 @@
 {{ config(materialized='view') }}
 
 with src as (
-  select * from {{ ref('stg_base_storm_event_details') }}
+  select * from {{ ref('base_storm_event__details') }}
 ),
 
 clean as (

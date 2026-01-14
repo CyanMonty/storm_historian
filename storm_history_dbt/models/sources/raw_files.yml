@@ -5,7 +5,7 @@ exposures:
     type: application
     maturity: low
     owner:
-      name: "Chris Montgomery"
+      name: "Chris"
     description: |
       Registry of raw file inputs for the Storm Historian project
       These datasets are immutable inputs and are loaded into the bronze layer
