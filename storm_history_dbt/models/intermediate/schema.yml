@@ -1,0 +1,30 @@
+version: 2
+
+models:
+  - name: int_storm_event_details__damage_parsed
+    description: "Intermediate model that parses damage values from text format (K/M/B) to numeric USD amounts"
+    columns:
+      - name: event_id
+        description: "Unique identifier for the storm event"
+        tests:
+          - not_null
+          - unique
+      - name: damage_property_amount
+        description: "Property damage in USD (parsed from K/M/B format)"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: true
+      - name: damage_crops_amount
+        description: "Crop damage in USD (parsed from K/M/B format)"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: true
+      - name: total_damage_amount
+        description: "Total property + crop damage in USD"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: true

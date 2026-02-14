@@ -8,7 +8,10 @@ STORM_DUCKDB_EXPLORE_PATH := $(ROOT_DIR)\data\duckdb\warehouse_explore.duckdb
 # --- Internal ---
 DBT := poetry run dbt
 
-.PHONY: dbt-debug dbt-build dbt-run dbt-test dbt-clean dbt-docs dbt-compile
+.PHONY: dbt-debug dbt-build dbt-run dbt-test dbt-clean dbt-docs dbt-compile dbt-deps
+
+dbt-deps:
+	$(DBT) deps --project-dir "$(DBT_PROJECT_DIR)"
 
 dbt-debug:
 	STORM_DUCKDB_PATH="$(STORM_DUCKDB_PATH)" && \

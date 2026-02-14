@@ -1,0 +1,276 @@
+version: 2
+
+models:
+  - name: dim_locations
+    description: "Dimension table for geographic locations (states and counties/zones)"
+    meta:
+      model_type: dimension
+    columns:
+      - name: location_key
+        description: "Surrogate key for the location dimension"
+        tests:
+          - not_null
+          - unique
+      - name: state
+        description: "Two-letter state abbreviation"
+        tests:
+          - not_null
+      - name: state_fips
+        description: "FIPS code for the state (1-99)"
+        tests:
+          - not_null
+      - name: cz_type
+        description: "County/Zone type: C=County, Z=Forecast Zone, M=Marine"
+        tests:
+          - accepted_values:
+              values: ['C', 'Z', 'M']
+              severity: warn
+      - name: cz_fips
+        description: "FIPS code for county/zone"
+      - name: cz_name
+        description: "Name of the county or forecast zone"
+      - name: cz_timezone
+        description: "Timezone for the location"
+
+  - name: dim_event_types
+    description: "Dimension table for storm event types with categorization"
+    meta:
+      model_type: dimension
+    columns:
+      - name: event_type_key
+        description: "Surrogate key for the event type dimension"
+        tests:
+          - not_null
+          - unique
+      - name: event_type
+        description: "Specific storm event type (e.g., Tornado, Hail)"
+        tests:
+          - not_null
+          - unique
+      - name: event_category
+        description: "High-level category grouping event types"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Tornado/Funnel', 'Wind', 'Hail', 'Flood', 'Winter Weather', 
+                      'Tropical', 'Lightning', 'Fire', 'Temperature Extreme', 'Other']
+
+  - name: fct_storm_events
+    description: "Core fact table for storm events with all metrics and denormalized dimensions"
+    meta:
+      model_type: fact
+      grain: "One row per storm event_id"
+    tests:
+      - dbt_utils.expression_is_true:
+          expression: "end_date_time >= begin_date_time or end_date_time is null"
+          name: end_date_after_begin_date
+      - dbt_utils.expression_is_true:
+          expression: "total_damage_amount >= 0 or total_damage_amount is null"
+          name: total_damage_non_negative
+    columns:
+      - name: event_id
+        description: "Primary key - unique identifier for the storm event"
+        tests:
+          - not_null
+          - unique
+      - name: episode_id
+        description: "Identifier linking related events in the same episode"
+        tests:
+          - not_null
+      - name: location_key
+        description: "Foreign key to dim_locations"
+        tests:
+          - relationships:
+              to: ref('dim_locations')
+              field: location_key
+              severity: warn  # Some locations may not join due to data quality
+      - name: event_type_key
+        description: "Foreign key to dim_event_types"
+        tests:
+          - relationships:
+              to: ref('dim_event_types')
+              field: event_type_key
+      - name: begin_date_time
+        description: "Timestamp when the event began"
+        tests:
+          - not_null
+      - name: end_date_time
+        description: "Timestamp when the event ended"
+      - name: event_type
+        description: "Type of storm event"
+        tests:
+          - not_null
+      - name: state
+        description: "Two-letter state abbreviation"
+        tests:
+          - not_null
+      - name: year
+        description: "Year of the event"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 1950
+              max_value: 2030
+      - name: total_injuries
+        description: "Sum of direct and indirect injuries"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: true
+      - name: total_deaths
+        description: "Sum of direct and indirect deaths"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: true
+      - name: damage_property_amount
+        description: "Property damage in USD (parsed from K/M/B format)"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: true
+      - name: damage_crops_amount
+        description: "Crop damage in USD (parsed from K/M/B format)"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: true
+      - name: total_damage_amount
+        description: "Total property + crop damage in USD"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: true
+      - name: tor_f_scale
+        description: "Fujita/Enhanced Fujita scale rating for tornadoes"
+      - name: tor_length
+        description: "Tornado path length in miles"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: true
+      - name: tor_width
+        description: "Tornado path width in yards"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: true
+      - name: location_point_count
+        description: "Count of location points associated with this event"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: true
+      - name: fatality_record_count
+        description: "Count of fatality records associated with this event"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: true
+
+  - name: fct_fatalities
+    description: "Fact table for individual storm event fatalities"
+    meta:
+      model_type: fact
+      grain: "One row per fatality_id"
+    columns:
+      - name: fatality_id
+        description: "Primary key - unique identifier for the fatality record"
+        tests:
+          - not_null
+          - unique
+      - name: event_id
+        description: "Foreign key to fct_storm_events"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('fct_storm_events')
+              field: event_id
+      - name: event_type_key
+        description: "Foreign key to dim_event_types"
+        tests:
+          - relationships:
+              to: ref('dim_event_types')
+              field: event_type_key
+              severity: warn
+      - name: episode_id
+        description: "Storm episode identifier from parent event"
+      - name: event_type
+        description: "Type of storm event that caused the fatality"
+        tests:
+          - not_null
+      - name: state
+        description: "State where fatality occurred"
+        tests:
+          - not_null
+      - name: fatality_date_time
+        description: "Timestamp of the fatality"
+      - name: fatality_type
+        description: "Direct or Indirect fatality"
+        tests:
+          - accepted_values:
+              values: ['Direct', 'Indirect']
+              severity: warn
+      - name: fatality_age
+        description: "Age of the deceased"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 130
+              inclusive: true
+      - name: fatality_sex
+        description: "Sex of the deceased (M/F)"
+        tests:
+          - accepted_values:
+              values: ['M', 'F']
+              severity: warn
+      - name: fatality_location
+        description: "Description of where the fatality occurred"
+
+  - name: agg_events_by_state_year
+    description: "Pre-aggregated metrics by state and year for performance"
+    meta:
+      model_type: aggregate
+      grain: "One row per state per year"
+    columns:
+      - name: state
+        description: "Two-letter state abbreviation"
+        tests:
+          - not_null
+      - name: state_fips
+        description: "FIPS code for the state"
+        tests:
+          - not_null
+      - name: year
+        description: "Year of events"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 1950
+              max_value: 2030
+      - name: total_events
+        description: "Count of storm events in this state/year"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: true
+      - name: total_injuries
+        description: "Sum of all injuries (direct + indirect)"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: true
+      - name: total_deaths
+        description: "Sum of all deaths (direct + indirect)"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: true
+      - name: total_damage_millions
+        description: "Total damage in millions of USD"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: true
+
