@@ -1,0 +1,21 @@
+[sqlfluff]
+# Run sqlfluff from the repo root so it can find the dbt project
+templater = dbt
+dialect = duckdb
+# Increase max_line_length if you prefer wider SQL
+max_line_length = 120
+
+[sqlfluff:templater:dbt]
+project_dir = storm_history_dbt
+profiles_dir = storm_history_dbt
+target = dev
+
+[sqlfluff:indentation]
+indent_unit = space
+tab_space_size = 4
+
+[sqlfluff:rules:capitalisation.keywords]
+capitalisation_policy = upper
+
+[sqlfluff:rules:capitalisation.identifiers]
+capitalisation_policy = lower

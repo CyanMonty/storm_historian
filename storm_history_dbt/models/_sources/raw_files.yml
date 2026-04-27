@@ -1,0 +1,12 @@
+version: 2
+
+exposures:
+  - name: raw_files_catalog
+    type: application
+    maturity: low
+    owner:
+      name: "Chris"
+    description: |
+      Registry of raw file inputs for the Storm Historian project.
+      Datasets: storm_event_details, storm_event_fatalities, storm_event_locations.
+      All are CSV.GZ files read via DuckDB read_csv with union_by_name=true.

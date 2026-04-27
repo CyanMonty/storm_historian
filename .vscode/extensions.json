@@ -1,0 +1,16 @@
+{
+    "recommendations": [
+        // dbt
+        "innoverio.vscode-dbt-power-user", // dbt Power User — works with dbt-duckdb locally (Fusion engine doesn't support DuckDB)
+
+        // SQL tooling
+        "mtxr.sqltools",               // SQLTools — query runner UI
+        "evidence.sqltools-duckdb-driver", // DuckDB driver for SQLTools
+        "sqlfluff.vscode-sqlfluff",    // SQLFluff linter/formatter (already in pyproject.toml)
+
+        // Python
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-python.debugpy"
+    ]
+}

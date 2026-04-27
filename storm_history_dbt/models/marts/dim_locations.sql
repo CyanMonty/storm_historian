@@ -22,7 +22,10 @@ with locations as (
 
 final as (
   select
-    {{ dbt_utils.generate_surrogate_key(['state_fips', 'cz_fips']) }} as location_key,
+    -- cz_type is included in the key because FIPS codes are namespaced separately
+    -- for counties (C) and forecast zones (Z) — the same FIPS number refers to
+    -- different geographic entities depending on type.
+    {{ dbt_utils.generate_surrogate_key(['state_fips', 'cz_type', 'cz_fips']) }} as location_key,
     state,
     state_fips,
     cz_type,  -- C = County, Z = Forecast Zone, M = Marine

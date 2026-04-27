@@ -1,12 +1,40 @@
 {
+    // SQLTools: DuckDB connections
     "sqltools.useNodeRuntime": true,
     "sqltools.connections": [
         {
-            "name": "ExplorationStormDuckDB",
+            "name": "StormDuckDB (build)",
             "accessMode": "Read Only",
             "previewLimit": 50,
             "driver": "DuckDB",
-            "databaseFilePath": "C:\\Users\\chris\\Documents\\repos\\storm_historian\\data\\duckdb\\warehouse_explore.duckdb"
+            "databaseFilePath": "${workspaceFolder}/data/duckdb/warehouse_build.duckdb"
+        },
+        {
+            "name": "StormDuckDB (explore)",
+            "accessMode": "Read Only",
+            "previewLimit": 50,
+            "driver": "DuckDB",
+            "databaseFilePath": "${workspaceFolder}/data/duckdb/warehouse_explore.duckdb"
         }
-    ]
+    ],
+
+    // dbt Power User (innoverio.vscode-dbt-power-user)
+    // Uses your local poetry venv so dbt-duckdb is available (Fusion engine doesn't support DuckDB)
+    "dbt.dbtPythonPathOverride": "${workspaceFolder}/.venv/Scripts/python.exe",
+
+    // SQLFluff — uses the poetry venv so the dbt templater is available
+    "sqlfluff.executablePath": "${workspaceFolder}/.venv/Scripts/sqlfluff",
+    "sqlfluff.config": "${workspaceFolder}/.sqlfluff",
+    "sqlfluff.linter.run": "onSave",
+
+    // Treat .sql files in the dbt project as jinja-sql for syntax highlighting
+    "files.associations": {
+        "storm_history_dbt/**/*.sql": "jinja-sql"
+    },
+
+    // Editor
+    "editor.formatOnSave": false,
+    "[jinja-sql]": {
+        "editor.defaultFormatter": "sqlfluff.vscode-sqlfluff"
+    }
 }

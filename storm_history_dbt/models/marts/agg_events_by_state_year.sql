@@ -48,7 +48,20 @@ aggregated as (
     max(total_damage_amount) as max_damage_single_event,
     
     -- Tornado-specific metrics
-    max(case when tor_f_scale is not null then tor_f_scale else null end) as strongest_tornado_scale,
+    -- Numeric severity score maps both F-scale (pre-2007) and EF-scale (2007+)
+    -- to the same 0–10 ordinal so MAX() is semantically correct across eras.
+    -- Alphabetic MAX on the raw string is wrong: 'F5' > 'EF5' lexicographically.
+    max(
+        case tor_f_scale
+            when 'EF5' then 10  when 'F5' then 10
+            when 'EF4' then 8   when 'F4' then 8
+            when 'EF3' then 6   when 'F3' then 6
+            when 'EF2' then 4   when 'F2' then 4
+            when 'EF1' then 2   when 'F1' then 2
+            when 'EF0' then 0   when 'F0' then 0
+        end
+    )                                                                       as max_tornado_severity,
+    max(tor_f_scale)                                                        as strongest_tornado_scale_display,
     sum(case when tor_f_scale in ('EF4', 'EF5', 'F4', 'F5') then 1 else 0 end) as violent_tornado_count,
     
     -- Location metrics
@@ -62,5 +75,6 @@ aggregated as (
   group by state, state_fips, year
 )
 
+-- ORDER BY removed: row order is not guaranteed on a materialized table
+-- and adds unnecessary sort cost on every build. Apply ordering at query time.
 select * from aggregated
-order by state, year

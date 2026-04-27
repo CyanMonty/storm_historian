@@ -4,9 +4,6 @@
     meta = {
       "raw_dataset": "storm_event_fatalities",
       "grain": "row"
-    },
-    depends_on = {
-      "exposure": ["raw_files_catalog"]
     }
 ) }}
 

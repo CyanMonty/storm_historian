@@ -2,7 +2,10 @@ version: 2
 
 models:
   - name: int_storm_event_details__damage_parsed
-    description: "Intermediate model that parses damage values from text format (K/M/B) to numeric USD amounts"
+    description: "Intermediate model parsing damage amounts into numeric values."
+    config:
+      meta:
+        model_type: intermediate
     columns:
       - name: event_id
         description: "Unique identifier for the storm event"
@@ -13,18 +16,81 @@ models:
         description: "Property damage in USD (parsed from K/M/B format)"
         tests:
           - dbt_utils.accepted_range:
-              min_value: 0
-              inclusive: true
+              arguments:
+                min_value: 0
+                inclusive: true
       - name: damage_crops_amount
         description: "Crop damage in USD (parsed from K/M/B format)"
         tests:
           - dbt_utils.accepted_range:
-              min_value: 0
-              inclusive: true
+              arguments:
+                min_value: 0
+                inclusive: true
       - name: total_damage_amount
         description: "Total property + crop damage in USD"
         tests:
           - not_null
           - dbt_utils.accepted_range:
-              min_value: 0
-              inclusive: true
+              arguments:
+                min_value: 0
+                inclusive: true
+      - name: damage_property_is_trace
+        description: "True when NOAA recorded 'T' (trace) for property damage. Treated as $1."
+      - name: damage_crops_is_trace
+        description: "True when NOAA recorded 'T' (trace) for crop damage. Treated as $1."
+
+  - name: int_storm_event__location_agg
+    description: >
+      Aggregated location point counts and centroid coordinates per event.
+      Extracts the aggregation logic from fct_storm_events for independent
+      testability. Excludes orphaned location records (event_id not in details),
+      which is a known NOAA source artifact.
+    config:
+      meta:
+        model_type: intermediate
+    columns:
+      - name: event_id
+        description: "Foreign key to stg_storm_event_details"
+        tests:
+          - not_null
+          - unique
+      - name: location_point_count
+        description: "Number of location waypoints associated with this event"
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 1
+                inclusive: true
+      - name: avg_latitude
+        description: "Mean latitude across all location points for this event"
+      - name: avg_longitude
+        description: "Mean corrected longitude across all location points"
+      - name: has_suspect_longitude
+        description: "True if any location point had a positive (sign-flipped) longitude from NOAA"
+
+  - name: int_storm_event__fatality_agg
+    description: >
+      Aggregated fatality counts per event. Extracts aggregation logic from
+      fct_storm_events. Note: NOAA fatality_id values are not globally unique
+      across annual extract files; the has_duplicate_fatality_ids flag surfaces
+      events affected by this known source issue.
+    config:
+      meta:
+        model_type: intermediate
+    columns:
+      - name: event_id
+        description: "Foreign key to stg_storm_event_details"
+        tests:
+          - not_null
+          - unique
+      - name: fatality_record_count
+        description: "Total fatality rows associated with this event"
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 1
+                inclusive: true
+      - name: unique_fatality_id_count
+        description: "Count of distinct fatality_id values for this event"
+      - name: has_duplicate_fatality_ids
+        description: "True when fatality_id is not unique for this event, indicating NOAA duplicate extract rows"

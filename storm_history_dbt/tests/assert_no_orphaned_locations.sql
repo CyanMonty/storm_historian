@@ -1,6 +1,12 @@
+{{- config(severity='warn') -}}
 /*
   Data Quality Test: Check for orphaned location records
-  Location records should reference valid events
+  Location records should reference valid events.
+
+  NOAA note: ~0.3% of location records reference EVENT_IDs absent from the
+  details extract. This results from NOAA publishing locations and details in
+  separate annual files that are not always in perfect sync. Configured as warn
+  rather than error because this is a known source limitation, not a model bug.
 */
 
 select

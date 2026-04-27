@@ -1,0 +1,53 @@
+version: 2
+
+# NOAA Storm Events Database — source documentation
+# https://www.ncdc.noaa.gov/stormevents/
+#
+# Note: These files are read directly via DuckDB read_csv() in base models.
+# The sources block below documents the inputs for lineage and freshness
+# monitoring, even though dbt does not query them as database tables.
+#
+# Known dataset-level limitations:
+#   - Coverage begins in 1950 but is incomplete; wind/tornado only until 1955,
+#     then expands to all event types progressively through the 1990s.
+#   - Data is published with a 2–3 month lag and is subject to revision.
+#     Re-downloading the same year's data can yield different row counts.
+#   - episode_id was not assigned before ~2006; null is expected for older events.
+#   - The F-scale to EF-scale transition occurred Feb 1, 2007. Events before
+#     that date use TOR_F_SCALE values like 'F3'; after, 'EF3'.
+#   - Fatality IDs are not globally unique across annual extract files.
+
+sources:
+  - name: noaa_storm_events
+    description: >
+      Raw NOAA Storm Events CSV.GZ files, read at build time by DuckDB's
+      read_csv() table function. Files land in data/raw/ after ingestion.
+    tables:
+      - name: storm_event_details
+        description: >
+          Core event record: one row per storm event. Contains location, timing,
+          impacts (injuries, deaths), damage estimates, and narrative fields.
+          Sourced from NOAA StormEvents_details-ftp_v1.0_dYYYY_cYYYYMMDD.csv.gz.
+        meta:
+          path_glob: data/raw/storm_event_details/*.csv.gz
+          read_options: {header: true, union_by_name: true, ignore_errors: true, all_varchar: true}
+
+      - name: storm_event_fatalities
+        description: >
+          Individual fatality records linked to events via EVENT_ID.
+          One row per fatality. FATALITY_ID is not globally unique across years.
+          Sourced from NOAA StormEvents_fatalities-ftp_v1.0_dYYYY_cYYYYMMDD.csv.gz.
+        meta:
+          path_glob: data/raw/storm_event_fatalities/*.csv.gz
+          read_options: {header: true, union_by_name: true, ignore_errors: true, all_varchar: true}
+
+      - name: storm_event_locations
+        description: >
+          Supplemental location point records — storm path waypoints and additional
+          coordinate data linked to events via EVENT_ID. Approximately 0.3% of
+          location records reference EVENT_IDs absent from the details extract;
+          this is a known NOAA data artifact.
+          Sourced from NOAA StormEvents_locations-ftp_v1.0_dYYYY_cYYYYMMDD.csv.gz.
+        meta:
+          path_glob: data/raw/storm_event_locations/*.csv.gz
+          read_options: {header: true, union_by_name: true, ignore_errors: true, all_varchar: true}

@@ -19,6 +19,16 @@ select
   try_cast(LATITUDE as double)  as latitude,
   try_cast(LONGITUDE as double) as longitude,
 
+  -- NOAA data quality flags
+  -- All US/territory longitudes (CONUS, Alaska, Hawaii, territories) are negative.
+  -- A positive longitude in the NOAA source is a sign-flip error, most common in
+  -- older extracts. Use longitude_corrected for mapping and spatial analysis.
+  try_cast(LONGITUDE as double) > 0                                    as longitude_suspect,
+  case
+    when try_cast(LONGITUDE as double) > 0 then -try_cast(LONGITUDE as double)
+    else try_cast(LONGITUDE as double)
+  end                                                                  as longitude_corrected,
+
   -- metadata
   etl_inserted_at
 from src

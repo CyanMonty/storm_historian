@@ -90,7 +90,46 @@ clean as (
     nullif(trim(cast(DATA_SOURCE as varchar)), '')       as data_source,
 
     -- metadata
-    etl_inserted_at
+    etl_inserted_at,
+
+    -- NOAA data quality flags ─────────────────────────────────────────────────
+
+    -- Episode IDs were not assigned in NOAA records before ~2006. A null
+    -- episode_id where year < 2006 is expected and is NOT a data problem.
+    try_cast(YEAR as integer) < 2006                               as is_pre_episode_era,
+
+    -- NOAA officially transitioned from the Fujita (F) scale to the Enhanced
+    -- Fujita (EF) scale on February 1, 2007. Records before that date carry
+    -- 'F0'–'F5' in TOR_F_SCALE; records after carry 'EF0'–'EF5'. Comparing
+    -- tornado severity across eras requires scale-aware logic; see
+    -- agg_events_by_state_year.max_tornado_severity for a cross-era approach.
+    case
+      when try_cast(YEAR as integer) < 2007 then 'F_scale'
+      else 'EF_scale'
+    end                                                            as tor_scale_era,
+
+    -- NOAA encodes BEGIN_DATE_TIME / END_DATE_TIME with a 2-digit year
+    -- ('%d-%b-%y %H:%M:%S'). DuckDB's strptime maps 00–68 → 2000–2068 and
+    -- 69–99 → 1969–1999.  Events from 1950–1968 are therefore miscenturied to
+    -- the 2050s in the parsed timestamp.  Cross-checking against the
+    -- authoritative 4-digit YEAR column catches these silently wrong rows.
+    (
+      try_strptime(trim(cast(BEGIN_DATE_TIME as varchar)), '%d-%b-%y %H:%M:%S') is not null
+      and extract('year' from
+            try_strptime(trim(cast(BEGIN_DATE_TIME as varchar)), '%d-%b-%y %H:%M:%S'))
+          != try_cast(YEAR as integer)
+    )                                                              as begin_date_century_suspect,
+    (
+      try_strptime(trim(cast(END_DATE_TIME as varchar)), '%d-%b-%y %H:%M:%S') is not null
+      and extract('year' from
+            try_strptime(trim(cast(END_DATE_TIME as varchar)), '%d-%b-%y %H:%M:%S'))
+          != try_cast(YEAR as integer)
+    )                                                              as end_date_century_suspect,
+
+    -- All US/territory longitudes are negative. Positive values in BEGIN_LON /
+    -- END_LON indicate a sign-flip error common in older NOAA extracts.
+    try_cast(BEGIN_LON as double) > 0                              as begin_lon_suspect,
+    try_cast(END_LON   as double) > 0                              as end_lon_suspect
 
   from src
 )

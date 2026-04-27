@@ -1,0 +1,144 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        // ── dbt core commands ──────────────────────────────────────────────
+        {
+            "label": "dbt: deps",
+            "type": "shell",
+            "command": "poetry run dbt deps --project-dir storm_history_dbt --profiles-dir storm_history_dbt",
+            "group": "build",
+            "presentation": { "reveal": "always", "panel": "shared" },
+            "problemMatcher": []
+        },
+        {
+            "label": "dbt: build",
+            "type": "shell",
+            "command": "poetry run dbt build --project-dir storm_history_dbt --profiles-dir storm_history_dbt",
+            "options": {
+                "env": {
+                    "STORM_DUCKDB_PATH": "${workspaceFolder}/data/duckdb/warehouse_build.duckdb"
+                }
+            },
+            "group": { "kind": "build", "isDefault": true },
+            "presentation": { "reveal": "always", "panel": "shared" },
+            "problemMatcher": []
+        },
+        {
+            "label": "dbt: run",
+            "type": "shell",
+            "command": "poetry run dbt run --project-dir storm_history_dbt --profiles-dir storm_history_dbt",
+            "options": {
+                "env": {
+                    "STORM_DUCKDB_PATH": "${workspaceFolder}/data/duckdb/warehouse_build.duckdb"
+                }
+            },
+            "group": "build",
+            "presentation": { "reveal": "always", "panel": "shared" },
+            "problemMatcher": []
+        },
+        {
+            "label": "dbt: test",
+            "type": "shell",
+            "command": "poetry run dbt test --project-dir storm_history_dbt --profiles-dir storm_history_dbt",
+            "options": {
+                "env": {
+                    "STORM_DUCKDB_PATH": "${workspaceFolder}/data/duckdb/warehouse_build.duckdb"
+                }
+            },
+            "group": { "kind": "test", "isDefault": true },
+            "presentation": { "reveal": "always", "panel": "shared" },
+            "problemMatcher": []
+        },
+        {
+            "label": "dbt: compile",
+            "type": "shell",
+            "command": "poetry run dbt compile --project-dir storm_history_dbt --profiles-dir storm_history_dbt",
+            "options": {
+                "env": {
+                    "STORM_DUCKDB_PATH": "${workspaceFolder}/data/duckdb/warehouse_build.duckdb"
+                }
+            },
+            "group": "build",
+            "presentation": { "reveal": "always", "panel": "shared" },
+            "problemMatcher": []
+        },
+        {
+            "label": "dbt: clean",
+            "type": "shell",
+            "command": "poetry run dbt clean --project-dir storm_history_dbt --profiles-dir storm_history_dbt",
+            "group": "build",
+            "presentation": { "reveal": "always", "panel": "shared" },
+            "problemMatcher": []
+        },
+        // ── dbt run — single model (uses active file) ──────────────────────
+        // Run: Ctrl+Shift+P → Tasks: Run Task → "dbt: run active model"
+        {
+            "label": "dbt: run active model",
+            "type": "shell",
+            "command": "poetry run dbt run --project-dir storm_history_dbt --profiles-dir storm_history_dbt --select ${fileBasenameNoExtension}",
+            "options": {
+                "env": {
+                    "STORM_DUCKDB_PATH": "${workspaceFolder}/data/duckdb/warehouse_build.duckdb"
+                }
+            },
+            "group": "build",
+            "presentation": { "reveal": "always", "panel": "shared" },
+            "problemMatcher": []
+        },
+        {
+            "label": "dbt: test active model",
+            "type": "shell",
+            "command": "poetry run dbt test --project-dir storm_history_dbt --profiles-dir storm_history_dbt --select ${fileBasenameNoExtension}",
+            "options": {
+                "env": {
+                    "STORM_DUCKDB_PATH": "${workspaceFolder}/data/duckdb/warehouse_build.duckdb"
+                }
+            },
+            "group": "test",
+            "presentation": { "reveal": "always", "panel": "shared" },
+            "problemMatcher": []
+        },
+        // ── dbt docs ───────────────────────────────────────────────────────
+        {
+            "label": "dbt: docs generate",
+            "type": "shell",
+            "command": "poetry run dbt docs generate --project-dir storm_history_dbt --profiles-dir storm_history_dbt",
+            "options": {
+                "env": {
+                    "STORM_DUCKDB_PATH": "${workspaceFolder}/data/duckdb/warehouse_build.duckdb"
+                }
+            },
+            "group": "build",
+            "presentation": { "reveal": "always", "panel": "shared" },
+            "problemMatcher": []
+        },
+        {
+            "label": "dbt: docs serve",
+            "type": "shell",
+            "command": "poetry run dbt docs serve --project-dir storm_history_dbt --profiles-dir storm_history_dbt",
+            "options": {
+                "env": {
+                    "STORM_DUCKDB_PATH": "${workspaceFolder}/data/duckdb/warehouse_build.duckdb"
+                }
+            },
+            "isBackground": true,
+            "group": "build",
+            "presentation": { "reveal": "always", "panel": "new" },
+            "problemMatcher": []
+        },
+        // ── dbt debug ─────────────────────────────────────────────────────
+        {
+            "label": "dbt: debug",
+            "type": "shell",
+            "command": "poetry run dbt debug --project-dir storm_history_dbt --profiles-dir storm_history_dbt",
+            "options": {
+                "env": {
+                    "STORM_DUCKDB_PATH": "${workspaceFolder}/data/duckdb/warehouse_build.duckdb"
+                }
+            },
+            "group": "build",
+            "presentation": { "reveal": "always", "panel": "shared" },
+            "problemMatcher": []
+        }
+    ]
+}
