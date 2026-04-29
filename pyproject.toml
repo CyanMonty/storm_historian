@@ -23,4 +23,5 @@ sqlfluff = "^3.5.0"
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.14.8"
 pytest = "^9.0.1"
+playwright = "^1.59.0"
 

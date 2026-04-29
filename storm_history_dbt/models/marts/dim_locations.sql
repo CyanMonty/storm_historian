@@ -9,15 +9,20 @@
 */
 
 with locations as (
-  select distinct
-    state,
+  select
     state_fips,
     cz_type,
     cz_fips,
-    cz_name,
-    cz_timezone
+    -- Pick one canonical name/timezone per key via min().
+    -- The same FIPS combo can appear with minor name variants across years
+    -- (e.g. 'ST. LUCIE' vs 'ST LUCIE'). min() is deterministic and stable.
+    min(state)       as state,
+    min(cz_name)     as cz_name,
+    min(cz_timezone) as cz_timezone
   from {{ ref('stg_storm_event_details') }}
   where state is not null
+    and state_fips is not null
+  group by state_fips, cz_type, cz_fips
 ),
 
 final as (

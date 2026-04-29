@@ -88,7 +88,9 @@ models:
       - name: episode_id
         description: "Identifier linking related events in the same episode"
         tests:
-          - not_null
+          - not_null:
+              config:
+                severity: warn  # Pre-2006 NOAA records have no episode_id; null is expected (~230k rows)
       - name: location_key
         description: "Foreign key to dim_locations"
         tests:
@@ -118,7 +120,9 @@ models:
       - name: state
         description: "Two-letter state abbreviation"
         tests:
-          - not_null
+          - not_null:
+              config:
+                severity: warn  # 1 known NOAA row with null state; propagated from source
       - name: year
         description: "Year of the event"
         tests:
@@ -318,3 +322,88 @@ models:
                 min_value: 0
                 inclusive: true
 
+  - name: dim_zip_codes
+    description: >
+      Dimension table for ZIP codes (ZCTAs). Grain: one row per ZIP code.
+      Each ZIP is mapped to its dominant county (highest Census land area_ratio).
+      The location_key FK is valid only for county-level NOAA entries (cz_type = 'C');
+      null means no NOAA events exist for the dominant county of that ZIP.
+    config:
+      meta:
+        model_type: dimension
+    columns:
+      - name: zip_key
+        description: "Surrogate key for the ZIP code dimension"
+        tests:
+          - not_null
+          - unique
+      - name: zip_code
+        description: "5-digit ZIP Code Tabulation Area (ZCTA), zero-padded"
+        tests:
+          - not_null
+          - unique
+      - name: county_fips_full
+        description: "5-digit FIPS of dominant county (state 2 + county 3)"
+        tests:
+          - not_null
+      - name: state_fips
+        description: "2-digit state FIPS code, zero-padded"
+        tests:
+          - not_null
+      - name: county_fips
+        description: "3-digit county FIPS code, zero-padded"
+        tests:
+          - not_null
+      - name: county_name
+        description: "Full county name (e.g. 'Jefferson County')"
+        tests:
+          - not_null
+      - name: dominant_county_area_ratio
+        description: "Fraction of the ZIP's land area in the dominant county (0.0–1.0)"
+      - name: counties_in_zip
+        description: "Total number of counties this ZIP overlaps"
+      - name: is_multi_county
+        description: "True when the ZIP spans more than one county"
+      - name: location_key
+        description: "FK to dim_locations; null when dominant county has no NOAA events on record"
+      - name: state_abbr
+        description: "Two-letter state abbreviation from dim_locations"
+
+  - name: agg_events_by_zip
+    description: >
+      Pre-aggregated storm event metrics by ZIP code. Grain: one row per zip_code.
+      County-level NOAA events (cz_type='C') are expanded to all overlapping ZIPs
+      via the Census crosswalk — a single event appears in every ZIP whose county
+      it occurred in. Zone and Marine events are excluded (unmappable to ZIP).
+    config:
+      meta:
+        model_type: aggregate
+        grain: "One row per zip_code"
+    columns:
+      - name: zip_code
+        description: "5-digit ZIP Code Tabulation Area"
+        tests:
+          - not_null
+          - unique
+      - name: county_fips_full
+        description: "5-digit FIPS of the county associated with this ZIP in the crosswalk"
+        tests:
+          - not_null
+      - name: total_events
+        description: "Total county-level NOAA events mapped to this ZIP"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 1
+                inclusive: true
+      - name: total_injuries
+        description: "Sum of all injuries across events in this ZIP"
+      - name: total_deaths
+        description: "Sum of all deaths across events in this ZIP"
+      - name: total_damage_millions
+        description: "Total property + crop damage in millions of USD"
+      - name: max_tornado_severity
+        description: "Highest tornado severity score (0–10 ordinal mapping F/EF scale)"
+      - name: last_updated
+        description: "Latest etl_inserted_at from source events"

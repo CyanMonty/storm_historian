@@ -1,242 +1,301 @@
 # Storm Historian
 
-A data engineering project for ingesting, transforming, and analyzing NOAA Storm Events data. This project implements a complete ELT (Extract, Load, Transform) pipeline to process historical storm event data from NOAA's Storm Events Database.
+> A complete ELT data engineering project — from raw NOAA files to an interactive storm events analytics app.
 
-## Overview
+Storm Historian automates the discovery, download, and transformation of 75+ years of publicly available weather data from [NOAA's Storm Events Database](https://www.ncei.noaa.gov/pub/data/swdi/stormevents/csvfiles/), then surfaces it through a Streamlit dashboard with national and per-state analysis, county-level hotspot maps, and ZIP code–level event lookups.
 
-Storm Historian automates the discovery, ingestion, and transformation of publicly available storm event data from [NOAA's Storm Events Database](https://www.ncei.noaa.gov/pub/data/swdi/stormevents/csvfiles/). The pipeline tracks file states, downloads new or updated files, and transforms the raw data into cleaned, analytics-ready datasets using dbt.
+**2,000,000+ events · 1950–2025 · 50 states + territories · $672B in recorded damage**
+
+---
+
+## Screenshots
+
+### National Overview
+The landing page shows national summary metrics, color-coded stacked bar charts of events and damage by year (broken down by storm category), and an interactive choropleth map colored by total events, deaths, or damage.
+
+![National Overview](docs/screenshots/02_national_full.png)
+
+---
+
+### State Drill-Down
+Select any state from the dropdown to filter all metrics, charts, and the map to that state. The choropleth is replaced by a county-level bubble map sized by the selected metric.
+
+![Texas State Overview](docs/screenshots/04_state_full_texas.png)
+
+---
+
+### ZIP Code Explorer
+Look up any US ZIP code to see a breakdown of storm event types, a year-over-year trend chart, an event location scatter map, and a sortable/filterable table of individual events.
+
+![ZIP Code Explorer — Houston TX 77002](docs/screenshots/06_zip_results.png)
+
+---
 
 ## Features
 
-- **Automated File Discovery**: Scans NOAA's data repository for new or updated storm event files
-- **State Management**: Tracks downloaded files and their modification dates using DuckDB
-- **Incremental Ingestion**: Only downloads new or modified files
-- **Data Transformation**: dbt models for staging and transforming raw storm data
-- **Three Data Streams**:
-  - Storm Event Details (main event information)
-  - Storm Event Fatalities (fatality records)
-  - Storm Event Locations (geographic data)
+- **Automated ingestion** — discovers and incrementally downloads new/updated files from NOAA; only fetches what has changed
+- **Full ELT pipeline** — raw CSV.GZ files → DuckDB staging → dbt-transformed marts → read-only explore database
+- **dbt data model** — staging, intermediate, and mart layers with data quality tests baked in
+- **National Overview** — summary KPIs, stacked bar charts by storm category, and a tile-based choropleth map with three color axes (events / deaths / damage)
+- **State drill-down** — filter the entire dashboard to a single state; choropleth swaps for a county-level bubble hotspot map
+- **ZIP Code Explorer** — per-ZIP event history with charts, a scatter map, and a searchable event table
+- **Dark tile maps** — all maps use the Carto Dark Matter tile basemap via Plotly's `scatter_map` / `choropleth_map`
+
+---
 
 ## Tech Stack
 
-- **Python 3.12+**: Core programming language
-- **DuckDB**: Embedded analytical database for data warehousing and state management
-- **dbt**: Data transformation and modeling framework
-- **Polars**: High-performance DataFrame library for data processing
-- **Poetry**: Dependency management and packaging
-- **Additional libraries**: Requests, BeautifulSoup4, Pydantic, PyYAML, Streamlit, Plotly
+| Layer | Technology |
+|---|---|
+| Language | Python 3.12+ |
+| Package manager | [Poetry](https://python-poetry.org/) |
+| Database | [DuckDB 1.4](https://duckdb.org/) |
+| Data transformation | [dbt-duckdb 1.10](https://github.com/duckdb/dbt-duckdb) |
+| DataFrame library | [Polars 1.35](https://pola.rs/) |
+| Web app | [Streamlit 1.52](https://streamlit.io/) |
+| Charts & maps | [Plotly 6.5](https://plotly.com/python/) |
+| HTTP / scraping | Requests, BeautifulSoup4 |
+| Data validation | [Pydantic v2](https://docs.pydantic.dev/) |
+| Linting | Ruff, SQLFluff |
 
-## Project Structure
+---
+
+## Architecture
 
 ```
-storm_historian/
-├── src/storm_historian/
-│   ├── ingestion/
-│   │   ├── discover_files.py    # Discovers available files from NOAA
-│   │   ├── pull_file.py         # Downloads files to local storage
-│   │   ├── source_info.yml      # Configuration for data sources
-│   │   └── source_model.py      # Pydantic models for sources
-│   └── data_exploration.py      # Ad-hoc data exploration scripts
-├── storm_history_dbt/
-│   ├── models/
-│   │   ├── sources/             # Source configurations
-│   │   └── staging/             # Staging transformations
-│   │       ├── base/            # Base models (raw → typed)
-│   │       └── stg/             # Staging models (cleaned)
-│   ├── dbt_project.yml          # dbt project configuration
-│   └── profiles.yml             # dbt connection profiles
-├── data/
-│   ├── duckdb/                  # DuckDB database files
-│   │   ├── warehouse_build.duckdb    # Main transformation warehouse
-│   │   ├── warehouse_explore.duckdb  # Copy for exploration
-│   │   └── state.duckdb             # File tracking state
-│   └── raw/                     # Downloaded CSV.GZ files
-│       ├── storm_event_details/
-│       ├── storm_event_fatalities/
-│       └── storm_event_locations/
-├── pyproject.toml               # Poetry dependencies
-├── makefile                     # dbt workflow commands
-└── README.md
+┌─────────────────────────────────────────────────────────────────┐
+│                        NOAA FTP Server                          │
+│          ncei.noaa.gov/pub/data/swdi/stormevents/csvfiles/      │
+└───────────────────────────┬─────────────────────────────────────┘
+                            │  HTTP scrape + incremental download
+                            ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  Ingestion  (src/storm_historian/ingestion/)                     │
+│  ┌─────────────────┐    ┌──────────────────┐                    │
+│  │ discover_files  │    │   pull_file       │                    │
+│  │ scrapes index & │───▶│ downloads new /   │                    │
+│  │ logs metadata   │    │ modified files    │                    │
+│  └─────────────────┘    └────────┬─────────┘                    │
+│           ▲  state tracking      │                              │
+│           └── warehouse.duckdb   │                              │
+└──────────────────────────────────┼──────────────────────────────┘
+                                   │ data/raw/  *.csv.gz
+                                   ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  dbt Transformation  (storm_history_dbt/)                        │
+│                                                                  │
+│  Sources  →  Base (typed)  →  Staging (cleaned)                 │
+│                              ↓                                   │
+│                         Intermediate (aggregates)               │
+│                              ↓                                   │
+│                            Marts                                 │
+│   fct_storm_events · agg_events_by_state_year                   │
+│   agg_events_by_zip · dim_zip_codes · fct_fatalities            │
+└──────────────────────────────┬──────────────────────────────────┘
+                               │  warehouse_build.duckdb
+                               │  → copied to warehouse_explore.duckdb
+                               ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  Streamlit App  (src/app/)                                       │
+│  ┌─────────────────────┐   ┌─────────────────────────────────┐  │
+│  │  National Overview  │   │  ZIP Code Explorer              │  │
+│  │  choropleth · KPIs  │   │  per-ZIP charts · map · table   │  │
+│  │  state hotspot map  │   │                                 │  │
+│  └─────────────────────┘   └─────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
 ```
+
+---
+
+## dbt Model Layers
+
+```
+storm_history_dbt/models/
+│
+├── _sources/               ← raw DuckDB external table declarations
+│   ├── raw_files.yml       ← reads *.csv.gz directly via DuckDB read_csv
+│   └── storm_events.yml
+│
+├── staging/                ← base + staging: type-cast and clean raw columns
+│   ├── base_storm_event__details.sql
+│   ├── base_storm_event__fatalities.sql
+│   ├── base_storm_event__locations.sql
+│   ├── stg_storm_event_details.sql
+│   ├── stg_storm_event_fatalities.sql
+│   └── stg_storm_event_locations.sql
+│
+├── intermediate/           ← pre-aggregations used by marts
+│   ├── int_storm_event__fatality_agg.sql
+│   ├── int_storm_event__location_agg.sql
+│   └── int_storm_event_details__damage_parsed.sql
+│
+└── marts/                  ← analytics-ready, app-facing tables
+    ├── fct_storm_events.sql          ← main fact table (event_category, lat/lon, damage)
+    ├── fct_fatalities.sql
+    ├── agg_events_by_state_year.sql  ← pre-aggregated for trend charts
+    ├── agg_events_by_zip.sql         ← pre-aggregated for ZIP explorer
+    ├── dim_zip_codes.sql             ← ZIP → county crosswalk (Census data)
+    ├── dim_event_types.sql
+    └── dim_locations.sql
+```
+
+Data quality tests (uniqueness, not-null, referential integrity, coordinate bounds) are defined in `schema.yml` files and run as part of `dbt build`.
+
+---
 
 ## Installation
 
 ### Prerequisites
 
-- Python 3.12 or higher
-- [Poetry](https://python-poetry.org/docs/#installation) for dependency management
+- Python 3.12+
+- [Poetry](https://python-poetry.org/docs/#installation)
 
-### Setup Steps
+### Setup
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd storm_historian
-   ```
+```bash
+# Clone the repo
+git clone https://github.com/<your-username>/storm_historian.git
+cd storm_historian
 
-2. **Install dependencies using Poetry**
-   ```bash
-   poetry install
-   ```
+# Install Python dependencies
+poetry install
 
-3. **Activate the Poetry shell**
-   ```bash
-   poetry shell
-   ```
+# Install dbt packages
+make dbt-deps
+```
+
+---
 
 ## Usage
 
-### 1. Discover Available Files
-
-Scan NOAA's repository to find available storm event files and log them to the state database:
+### Full pipeline (recommended)
 
 ```bash
-python src/storm_historian/ingestion/discover_files.py
+make build
 ```
 
-This script:
-- Scrapes the NOAA FTP directory listing
-- Identifies CSV.GZ files matching configured patterns
-- Records file metadata (name, URL, size, last modified date) in `data/duckdb/state.duckdb`
-- Only updates records if files have been modified
+This runs the complete pipeline in one command:
+1. Discovers new/updated files from NOAA
+2. Downloads them to `data/raw/`
+3. Runs `dbt build` (all models + all tests)
+4. Copies the built database to `warehouse_explore.duckdb` for the app
 
-### 2. Download New Files
-
-Download files that haven't been pulled yet:
+### Step-by-step
 
 ```bash
-python src/storm_historian/ingestion/pull_file.py
-```
+# 1. Discover and download new NOAA files
+make ingest
 
-This script:
-- Queries the state database for undownloaded files
-- Downloads them to the appropriate `data/raw/` subdirectory
-- Updates the state database to mark files as downloaded
-- Handles partial downloads gracefully
-
-### 3. Run dbt Transformations
-
-Use the provided Makefile commands to run dbt workflows:
-
-```bash
-# Debug dbt connection
-make dbt-debug
-
-# Compile dbt models (verify SQL syntax)
-make dbt-compile
-
-# Run all models (staging transformations)
-make dbt-run
-
-# Build models and run tests
+# 2. Build dbt models and run data quality tests
 make dbt-build
 
-# Run data quality tests
-make dbt-test
-
-# Generate dbt documentation
-make dbt-docs
-
-# Clean dbt artifacts
-make dbt-clean
+# 3. (Optional) Download the Census ZIP→county crosswalk and re-seed
+make seed-crosswalk
 ```
 
-The dbt transformations:
-- Read raw CSV.GZ files using DuckDB's `read_csv` functionality
-- Apply type conversions and data cleaning
-- Create staging views with standardized column names
-- Prepare data for downstream analytics
-
-### 4. Data Exploration
-
-After running transformations, explore the data:
+### Launch the app
 
 ```bash
-# Use the explore database (read-only copy)
-duckdb data/duckdb/warehouse_explore.duckdb
+make app
 ```
 
-Or use the provided exploration scripts in `src/data_exploration.py`.
+Opens at `http://localhost:8501` by default.
 
-## Configuration
+### dbt commands
 
-### Source Configuration
-
-Edit `src/storm_historian/ingestion/source_info.yml` to modify data sources:
-
-```yaml
-sources:
-  - name: storm_event_details
-    url: https://www.ncei.noaa.gov/pub/data/swdi/stormevents/csvfiles/
-    prefix: StormEvents_details
-    suffixes: 
-      - csv.gz
-    description: storm event details
-    type: directory
+```bash
+make dbt-run       # run models only (skip tests)
+make dbt-test      # run tests only
+make dbt-compile   # compile SQL without executing
+make dbt-docs      # generate + serve dbt documentation
+make dbt-debug     # check dbt connection
+make dbt-clean     # remove target/ and dbt_packages/
 ```
 
-### dbt Configuration
+---
 
-- **Project settings**: `storm_history_dbt/dbt_project.yml`
-- **Connection profiles**: `storm_history_dbt/profiles.yml`
-- **Model configurations**: YAML files in `models/` subdirectories
-
-### Environment Variables
-
-The Makefile uses the following environment variables (with defaults):
-
-- `STORM_DUCKDB_PATH`: Path to the main DuckDB warehouse (default: `data/duckdb/warehouse_build.duckdb`)
-- `DBT_PROFILES_DIR`: Path to dbt profiles directory (default: `storm_history_dbt/`)
-
-## Data Pipeline Flow
+## Project Structure
 
 ```
-1. Discovery Phase
-   NOAA FTP Server → discover_files.py → state.duckdb (file_tracker table)
-
-2. Ingestion Phase
-   state.duckdb → pull_file.py → data/raw/*.csv.gz
-
-3. Transformation Phase (dbt)
-   data/raw/*.csv.gz → base models → staging models → warehouse_build.duckdb
-
-4. Exploration Phase
-   warehouse_build.duckdb → warehouse_explore.duckdb (read-only copy)
+storm_historian/
+├── src/
+│   ├── streamlit_app.py             ← app entry point
+│   ├── app/
+│   │   ├── db.py                    ← DuckDB connection + cached query helpers
+│   │   └── pages/
+│   │       ├── overview.py          ← National Overview page
+│   │       └── zip_explorer.py      ← ZIP Code Explorer page
+│   └── storm_historian/
+│       └── ingestion/
+│           ├── discover_files.py    ← scrapes NOAA FTP index
+│           ├── pull_file.py         ← downloads files incrementally
+│           ├── source_info.yml      ← data source configuration
+│           └── source_model.py      ← Pydantic models
+├── storm_history_dbt/
+│   ├── dbt_project.yml
+│   ├── profiles.yml
+│   ├── models/                      ← see dbt Model Layers above
+│   ├── macros/
+│   │   └── parse_noaa_damage.sql    ← custom macro for damage string parsing
+│   ├── seeds/
+│   │   └── zip_county_crosswalk.csv ← Census ZIP→county mapping
+│   └── tests/                       ← custom singular data tests
+├── data/
+│   ├── duckdb/
+│   │   ├── warehouse_build.duckdb   ← dbt build target
+│   │   └── warehouse_explore.duckdb ← read-only copy for the app
+│   └── raw/                         ← downloaded CSV.GZ files from NOAA
+│       ├── storm_event_details/
+│       ├── storm_event_fatalities/
+│       └── storm_event_locations/
+├── docs/
+│   └── screenshots/                 ← UI screenshots
+├── makefile
+└── pyproject.toml
 ```
+
+---
+
+## Environment Variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `STORM_DUCKDB_PATH` | `data/duckdb/warehouse_build.duckdb` | Build database path (used by dbt) |
+| `STORM_DUCKDB_EXPLORE` | `data/duckdb/warehouse_explore.duckdb` | Read-only app database path |
+
+---
 
 ## Development
 
-### Code Quality
-
-The project uses the following tools (configured in `pyproject.toml`):
-
-- **Ruff**: Python linting and formatting
-- **pytest**: Testing framework
-- **SQLFluff**: SQL linting for dbt models
-
-### Running Tests
-
 ```bash
+# Lint Python
+poetry run ruff check src/
+
+# Format Python
+poetry run ruff format src/
+
+# Lint SQL (dbt models)
+poetry run sqlfluff lint storm_history_dbt/models/
+
+# Run Python tests
 poetry run pytest
 ```
 
-## Future Enhancements
-
-- Apache Airflow orchestration for scheduled ingestion
-- Docker containerization for deployment
-- Interactive dashboards using Streamlit/Plotly
-- Additional dbt mart models for analytics
-- Data quality tests and validation rules
-
-## License
-
-[Add your license information here]
+---
 
 ## Data Source
 
-Data is sourced from:
-- **NOAA Storm Events Database**: https://www.ncei.noaa.gov/pub/data/swdi/stormevents/
-- **Data Catalog**: https://catalog.data.gov/dataset/ncdc-storm-events-database
+Data is sourced from NOAA's public Storm Events Database:
 
-Please refer to NOAA's usage terms and conditions when using this data.
+- **Database**: https://www.ncei.noaa.gov/pub/data/swdi/stormevents/
+- **Data Catalog**: https://catalog.data.gov/dataset/ncdc-storm-events-database
+- **Documentation**: https://www.ncei.noaa.gov/pub/data/swdi/stormevents/csvfiles/Storm-Data-Bulk-csv-Format.pdf
+
+NOAA data is provided as a public service. Please refer to NOAA's terms and conditions when using or redistributing this data.
+
+---
+
+## License
+
+MIT
 

@@ -36,4 +36,9 @@ models:
     marts:
       +schema: marts
       +materialized: table
-    
+
+tests:
+  storm_history_dbt:
+    # Custom SQL tests in tests/ flag known NOAA data quality issues.
+    # These are warnings, not pipeline failures — the source data is the authority.
+    +severity: warn

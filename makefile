@@ -4,6 +4,8 @@
 # Usage:
 #   make ingest        — discover + download new NOAA files
 #   make build         — full pipeline: ingest → dbt build → copy explore db
+#   make app           — launch the Streamlit visualization app
+#   make app-dev       — launch app reading directly from build DB
 #   make dbt-build     — dbt build only (models + tests)
 #   make dbt-test      — run dbt tests only
 #   make dbt-run       — run dbt models only (no tests)
@@ -86,3 +88,15 @@ dbt-debug:
 ## Remove dbt target/ and dbt_packages/ directories
 dbt-clean:
 	$(DBT) clean
+
+# -----------------------------------------------------------------------------
+# App targets
+# -----------------------------------------------------------------------------
+
+## Launch the Streamlit app (reads from warehouse_explore.duckdb)
+app:
+	$(PYTHON) -m streamlit run src/streamlit_app.py
+
+## Launch the app pointing at the build DB (for development/debugging only)
+app-dev:
+	$(PYTHON) -m streamlit run src/streamlit_app.py -- --db $(STORM_DUCKDB_PATH)
